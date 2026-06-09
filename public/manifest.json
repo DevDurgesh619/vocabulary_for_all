@@ -1,0 +1,12 @@
+{
+  "name": "Lexica — Vocabulary Mastery",
+  "short_name": "Lexica",
+  "description": "Learn 5,000 words in daily batches, test yourself, and track every word you master.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0a0a12",
+  "theme_color": "#6d4ad6",
+  "icons": [
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

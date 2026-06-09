@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: oklch(0.99 0.003 270);
+  --color-foreground: oklch(0.22 0.02 270);
+  --color-card: oklch(1 0 0);
+  --color-card-foreground: oklch(0.22 0.02 270);
+  --color-muted: oklch(0.96 0.005 270);
+  --color-muted-foreground: oklch(0.52 0.02 270);
+  --color-border: oklch(0.91 0.006 270);
+  --color-input: oklch(0.91 0.006 270);
+
+  --color-primary: oklch(0.55 0.22 280);
+  --color-primary-foreground: oklch(0.99 0.003 270);
+  --color-accent: oklch(0.95 0.03 280);
+  --color-accent-foreground: oklch(0.4 0.15 280);
+
+  --color-success: oklch(0.62 0.17 150);
+  --color-success-foreground: oklch(0.99 0 0);
+  --color-warning: oklch(0.75 0.16 75);
+  --color-danger: oklch(0.6 0.22 25);
+  --color-danger-foreground: oklch(0.99 0 0);
+
+  --color-ring: oklch(0.55 0.22 280);
+
+  --radius: 0.85rem;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  --background: var(--color-background);
+  --foreground: var(--color-foreground);
+}
+
+.dark {
+  --color-background: oklch(0.17 0.015 275);
+  --color-foreground: oklch(0.95 0.01 270);
+  --color-card: oklch(0.21 0.018 275);
+  --color-card-foreground: oklch(0.95 0.01 270);
+  --color-muted: oklch(0.25 0.018 275);
+  --color-muted-foreground: oklch(0.68 0.02 270);
+  --color-border: oklch(0.3 0.02 275);
+  --color-input: oklch(0.3 0.02 275);
+  --color-primary: oklch(0.68 0.18 285);
+  --color-primary-foreground: oklch(0.16 0.02 275);
+  --color-accent: oklch(0.3 0.04 285);
+  --color-accent-foreground: oklch(0.85 0.08 285);
+  --color-success: oklch(0.68 0.16 150);
+  --color-warning: oklch(0.78 0.15 75);
+  --color-danger: oklch(0.65 0.2 25);
+  --color-ring: oklch(0.68 0.18 285);
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-in {
+  animation: fade-in-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 999px; }
