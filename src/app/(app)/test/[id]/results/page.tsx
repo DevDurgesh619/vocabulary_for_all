@@ -96,18 +96,14 @@ export default function ResultsPage({ params }: { params: Promise<{ id: string }
         collapsedCount={8}
       />
 
-      <div className="flex gap-3">
-        <Link href="/dashboard" className="flex-1">
-          <Button variant="outline" className="w-full">
-            <Home className="h-4 w-4" /> Dashboard
-          </Button>
-        </Link>
-        {wrong.length > 0 && (
-          <Link href={`/test?words=${wrong.map((r) => r.word_id).join(",")}&kind=revision`} className="flex-1">
-            <Button className="w-full">Retest {wrong.length} weak words</Button>
-          </Link>
-        )}
-      </div>
+      <Link href="/dashboard">
+        <Button className="w-full">
+          <Home className="h-4 w-4" /> Back to dashboard
+        </Button>
+      </Link>
+      <p className="text-center text-xs text-[var(--color-muted-foreground)]">
+        These results are final — one test per word. Your weak words are saved for a future review round.
+      </p>
     </div>
   );
 }

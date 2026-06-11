@@ -1,10 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { Search } from "lucide-react";
 import { WORDS } from "@/lib/bank";
-import { useProfile, useProgress } from "@/lib/hooks";
+import { useProgress } from "@/lib/hooks";
 import type { WordProgress, WordStatus } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,7 +28,6 @@ const PAGE = 60;
 
 export default function WordsPage() {
   const progress = useProgress();
-  const profile = useProfile();
   const [filter, setFilter] = useState<"all" | WordStatus>("all");
   const [q, setQ] = useState("");
   const [limit, setLimit] = useState(PAGE);
@@ -53,26 +51,13 @@ export default function WordsPage() {
     });
   }, [filter, q, progressMap]);
 
-  const weakIds = useMemo(
-    () => WORDS.filter((w) => statusOf(w.id) === "needs_review").map((w) => w.id),
-    [progressMap],
-  );
-  const retestIds = weakIds.slice(0, profile.data?.words_per_day ?? 150);
-
   return (
     <div className="space-y-5">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Word Bank</h1>
-          <p className="text-sm text-[var(--color-muted-foreground)]">
-            Browse all {WORDS.length.toLocaleString()} words and relearn your weak ones anytime.
-          </p>
-        </div>
-        {weakIds.length > 0 && (
-          <Link href={`/test?words=${retestIds.join(",")}&kind=revision`}>
-            <Button>Retest {retestIds.length} weak words</Button>
-          </Link>
-        )}
+      <header>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Word Bank</h1>
+        <p className="text-sm text-[var(--color-muted-foreground)]">
+          Browse all {WORDS.length.toLocaleString()} words. Filter to your weak words to study them — a review round will be scheduled later.
+        </p>
       </header>
 
       <div className="relative">

@@ -21,14 +21,14 @@ export default function DashboardPage() {
 
   const loading = profile.isLoading || sessions.isLoading || progress.isLoading || history.isLoading;
 
-  const covered = new Set<number>();
-  (sessions.data ?? []).forEach((s) => s.word_ids.forEach((id) => covered.add(id)));
-  const coveredCount = covered.size;
-  const coveredPct = Math.round((coveredCount / TOTAL_WORDS) * 1000) / 10;
-
   const prog = progress.data ?? [];
   const mastered = prog.filter((p) => p.status === "mastered").length;
   const needsReview = prog.filter((p) => p.status === "needs_review").length;
+
+  // "Covered" = words actually TESTED (they have a bucket), so it always matches
+  // Mastered + Needs review. Opening Learn without testing doesn't inflate it.
+  const coveredCount = prog.length;
+  const coveredPct = Math.round((coveredCount / TOTAL_WORDS) * 1000) / 10;
 
   const wpd = profile.data?.words_per_day ?? 150;
   const allCovered = coveredCount >= TOTAL_WORDS;
@@ -46,8 +46,8 @@ export default function DashboardPage() {
     if (ds.kind === "ready")
       return { eyebrow: `Day ${ds.dayNumber} is ready`, title: `Start your next ${wpd} words`, cta: "Start", href: "/learn", disabled: false };
     if (ds.kind === "locked")
-      return { eyebrow: "Done for today ✅", title: "Next batch unlocks tomorrow", cta: "Practise weak words", href: "/words", disabled: false, locked: true };
-    return { eyebrow: "All 5,000 covered 🎉", title: "Retest your weak words", cta: "Go to Words", href: "/words", disabled: false };
+      return { eyebrow: "Done for today ✅", title: "Next batch unlocks tomorrow", cta: "Browse words", href: "/words", disabled: false, locked: true };
+    return { eyebrow: "All 5,000 covered 🎉", title: "Browse your words", cta: "Go to Words", href: "/words", disabled: false };
   })();
 
   return (

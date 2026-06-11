@@ -76,8 +76,8 @@ export default function LearnPage() {
   if (state?.kind === "all_done")
     return (
       <Notice icon={GraduationCap} title="All 5,000 words covered! 🎉">
-        <p>Head to <strong>Words</strong> to retest and strengthen your weak words.</p>
-        <Button onClick={() => router.push("/words")}>Go to Words</Button>
+        <p>Your weak words are saved. A review round for them will be scheduled later.</p>
+        <Button onClick={() => router.push("/words")}>Browse your words</Button>
       </Notice>
     );
 
@@ -91,7 +91,7 @@ export default function LearnPage() {
         <div className="flex flex-col gap-2 pt-1">
           <Button onClick={() => router.push("/dashboard")}>Back to dashboard</Button>
           <Button variant="ghost" onClick={() => router.push("/words")}>
-            Practise weak words instead
+            Browse your words
           </Button>
         </div>
       </Notice>

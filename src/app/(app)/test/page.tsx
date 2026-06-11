@@ -49,10 +49,14 @@ function TestRunner() {
   useEffect(() => {
     (async () => {
       let wordIds: number[] = [];
-      const attempt = 0; // attempt 0 keeps each word's direction stable, so retests reuse identical questions
+      const attempt = 0;
+      // Re-tests/revision are disabled: only the once-per-day daily session can be tested.
       if (wordsParam) {
-        wordIds = wordsParam.split(",").map(Number).filter(Boolean);
-      } else if (sessionId) {
+        setBlocked(true);
+        setQuestions([]);
+        return;
+      }
+      if (sessionId) {
         const { data } = await sb.from("daily_sessions").select("*").eq("id", sessionId).maybeSingle();
         if (data) {
           const ds = data as DailySession;
@@ -127,7 +131,7 @@ function TestRunner() {
     return (
       <Center>
         <div className="flex max-w-sm flex-col items-center gap-4 text-center">
-          <p>This day&apos;s test is already complete. Only one test per day — come back tomorrow for the next batch.</p>
+          <p>This test isn&apos;t available. Each word is tested once — re-tests are turned off, and there&apos;s one test per day. Come back tomorrow for the next batch.</p>
           <Button onClick={() => router.push("/dashboard")}>Back to dashboard</Button>
         </div>
       </Center>

@@ -14,6 +14,14 @@ import type {
 import { fluencyTier, thresholdsFromProfile } from "./analytics";
 import { TOTAL_WORDS, WORDS } from "./bank";
 
+// Lightweight role lookup for post-login routing.
+export async function getRoleHome(sb: SupabaseClient): Promise<string> {
+  const { data: auth } = await sb.auth.getUser();
+  if (!auth.user) return "/login";
+  const { data } = await sb.from("profiles").select("role").eq("user_id", auth.user.id).maybeSingle();
+  return data?.role === "counsellor" ? "/counsellor" : "/dashboard";
+}
+
 export async function getProfile(sb: SupabaseClient): Promise<Profile | null> {
   const { data: auth } = await sb.auth.getUser();
   if (!auth.user) return null;
@@ -34,31 +42,48 @@ export async function updateProfile(sb: SupabaseClient, patch: Partial<Profile>)
   await sb.from("profiles").update({ ...patch, updated_at: new Date().toISOString() }).eq("user_id", auth.user.id);
 }
 
+// Current user id — student queries MUST scope by this explicitly. (A counsellor
+// account has read-all RLS, so relying on RLS alone would aggregate every student.)
+async function uid(sb: SupabaseClient): Promise<string | null> {
+  const { data } = await sb.auth.getUser();
+  return data.user?.id ?? null;
+}
+
 export async function getTestHistory(sb: SupabaseClient): Promise<TestSession[]> {
-  const { data } = await sb.from("test_sessions").select("*").order("created_at", { ascending: false });
+  const id = await uid(sb);
+  if (!id) return [];
+  const { data } = await sb.from("test_sessions").select("*").eq("user_id", id).order("created_at", { ascending: false });
   return (data ?? []) as TestSession[];
 }
 
 export async function getAllProgress(sb: SupabaseClient): Promise<WordProgress[]> {
-  const { data } = await sb.from("word_progress").select("*");
+  const id = await uid(sb);
+  if (!id) return [];
+  const { data } = await sb.from("word_progress").select("*").eq("user_id", id);
   return (data ?? []) as WordProgress[];
 }
 
 export async function getAllResponses(sb: SupabaseClient): Promise<QuestionResponse[]> {
-  const { data } = await sb.from("question_responses").select("*");
+  const id = await uid(sb);
+  if (!id) return [];
+  const { data } = await sb.from("question_responses").select("*").eq("user_id", id);
   return (data ?? []) as QuestionResponse[];
 }
 
 // The set of word ids already covered (have a daily session). Used to pick the next batch.
 export async function getCoveredWordIds(sb: SupabaseClient): Promise<Set<number>> {
-  const { data } = await sb.from("daily_sessions").select("word_ids");
+  const id = await uid(sb);
   const set = new Set<number>();
-  for (const row of (data ?? []) as { word_ids: number[] }[]) row.word_ids.forEach((id) => set.add(id));
+  if (!id) return set;
+  const { data } = await sb.from("daily_sessions").select("word_ids").eq("user_id", id);
+  for (const row of (data ?? []) as { word_ids: number[] }[]) row.word_ids.forEach((wid) => set.add(wid));
   return set;
 }
 
 export async function getDailySessions(sb: SupabaseClient): Promise<DailySession[]> {
-  const { data } = await sb.from("daily_sessions").select("*").order("day_number", { ascending: true });
+  const id = await uid(sb);
+  if (!id) return [];
+  const { data } = await sb.from("daily_sessions").select("*").eq("user_id", id).order("day_number", { ascending: true });
   return (data ?? []) as DailySession[];
 }
 

@@ -35,11 +35,14 @@ export async function proxy(request: NextRequest) {
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    url.searchParams.set("next", path); // remember where they were headed (e.g. /counsellor)
     return NextResponse.redirect(url);
   }
   if (user && path === "/login") {
+    const next = request.nextUrl.searchParams.get("next");
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    url.search = "";
+    url.pathname = next && next.startsWith("/") ? next : "/dashboard";
     return NextResponse.redirect(url);
   }
 

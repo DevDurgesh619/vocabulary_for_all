@@ -25,8 +25,13 @@ export interface Question {
 export type WordStatus = "new" | "learning" | "mastered" | "needs_review";
 export type FluencyTier = "mastered" | "developing" | "needs_reinforcement" | "at_risk";
 
+export type Role = "student" | "counsellor";
+
 export interface Profile {
   user_id: string;
+  role: Role;
+  email: string | null;
+  display_name: string | null;
   words_per_day: number;
   fast_threshold_ms: number;
   slow_threshold_ms: number;
