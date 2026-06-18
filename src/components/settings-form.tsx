@@ -137,16 +137,16 @@ export function SettingsForm({ isAdmin }: { isAdmin: boolean }) {
           </div>
           <input
             type="range"
-            min={25}
+            min={5}
             max={300}
-            step={25}
+            step={5}
             value={wpd}
             disabled={ro}
             onChange={(e) => setWpd(Number(e.target.value))}
             className="w-full accent-[var(--color-primary)] disabled:opacity-50"
           />
           <div className="flex gap-2">
-            {[50, 100, 150, 200].map((n) => (
+            {[5, 50, 100, 150, 200].map((n) => (
               <Button key={n} variant={wpd === n ? "default" : "outline"} size="sm" disabled={ro} onClick={() => setWpd(n)} className="flex-1">
                 {n}
               </Button>

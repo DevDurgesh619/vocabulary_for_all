@@ -94,9 +94,9 @@ export default function StudentDetailPage({ params }: { params: Promise<{ studen
               <span className="text-sm font-medium">Words per day</span>
               <Badge variant="default" className="tabular-nums">{wpd}</Badge>
             </div>
-            <input type="range" min={25} max={300} step={25} value={wpd} onChange={(e) => setWpd(Number(e.target.value))} className="w-full accent-[var(--color-primary)]" />
+            <input type="range" min={5} max={300} step={5} value={wpd} onChange={(e) => setWpd(Number(e.target.value))} className="w-full accent-[var(--color-primary)]" />
             <div className="mt-2 flex gap-2">
-              {[50, 100, 150, 200].map((n) => (
+              {[5, 50, 100, 150, 200].map((n) => (
                 <Button key={n} variant={wpd === n ? "default" : "outline"} size="sm" onClick={() => setWpd(n)} className="flex-1">{n}</Button>
               ))}
             </div>
