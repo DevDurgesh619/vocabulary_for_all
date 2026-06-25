@@ -61,6 +61,7 @@ export default function StudentDetailPage({ params }: { params: Promise<{ studen
 
   const name = profile.display_name || profile.email || "Student";
   const mastered = detail.data!.progress.filter((p) => p.status === "mastered").length;
+  const alreadyKnown = detail.data!.progress.filter((p) => p.status === "already_known").length;
   const needsReview = detail.data!.progress.filter((p) => p.status === "needs_review").length;
   const coveredPct = Math.round((detail.data!.progress.length / TOTAL_WORDS) * 1000) / 10;
 
@@ -78,6 +79,7 @@ export default function StudentDetailPage({ params }: { params: Promise<{ studen
         <div className="flex gap-1.5">
           <Badge variant="muted">{coveredPct}% covered</Badge>
           <Badge variant="success">{mastered} mastered</Badge>
+          <Badge variant="default">{alreadyKnown} known</Badge>
           <Badge variant="danger">{needsReview} review</Badge>
         </div>
       </header>

@@ -66,6 +66,7 @@ export default function CounsellorOverview() {
                     </div>
                     <div className="hidden shrink-0 gap-1.5 sm:flex">
                       <Badge variant="success">{s.mastered} mastered</Badge>
+                      <Badge variant="default">{s.already_known ?? 0} known</Badge>
                       <Badge variant="danger">{s.needs_review} review</Badge>
                     </div>
                     <ChevronRight className="h-4 w-4 shrink-0 text-[var(--color-muted-foreground)]" />

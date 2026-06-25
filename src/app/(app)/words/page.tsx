@@ -14,11 +14,13 @@ const FILTERS: { key: "all" | WordStatus; label: string }[] = [
   { key: "all", label: "All" },
   { key: "needs_review", label: "Needs review" },
   { key: "mastered", label: "Mastered" },
+  { key: "already_known", label: "Already known" },
   { key: "new", label: "Not yet seen" },
 ];
 
-const STATUS_BADGE: Record<WordStatus, { label: string; variant: "success" | "danger" | "muted" }> = {
+const STATUS_BADGE: Record<WordStatus, { label: string; variant: "success" | "danger" | "muted" | "default" }> = {
   mastered: { label: "Mastered", variant: "success" },
+  already_known: { label: "Already known", variant: "default" },
   needs_review: { label: "Needs review", variant: "danger" },
   learning: { label: "Learning", variant: "muted" },
   new: { label: "New", variant: "muted" },

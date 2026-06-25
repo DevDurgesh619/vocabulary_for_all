@@ -1,7 +1,7 @@
 // Loads the static vocabulary bank: words (bundled) + question chunks (lazy-fetched).
 
 import wordsData from "@/data/words.json";
-import type { Question, Word, Direction } from "./types";
+import type { Question, Word, Direction, WordDetail } from "./types";
 
 export const WORDS = wordsData as Word[];
 export const TOTAL_WORDS = WORDS.length;
@@ -47,6 +47,28 @@ export async function loadQuestionsForWords(wordIds: number[]): Promise<Map<numb
   const result = new Map<number, Question[]>();
   for (const [wid, qs] of byWord) if (wanted.has(wid)) result.set(wid, qs);
   return result;
+}
+
+// ---- Word detail bank (phonetic + meanings + examples) ----
+// Chunked exactly like questions (by word.order / CHUNK_SIZE), lazy-fetched.
+const detailChunkCache = new Map<number, WordDetail[]>();
+
+async function loadDetailChunk(chunkIndex: number): Promise<WordDetail[]> {
+  if (detailChunkCache.has(chunkIndex)) return detailChunkCache.get(chunkIndex)!;
+  const name = `chunk-${String(chunkIndex).padStart(4, "0")}.json`;
+  const res = await fetch(`/word-details/${name}`);
+  if (!res.ok) throw new Error(`Failed to load ${name}`);
+  const data = (await res.json()) as WordDetail[];
+  detailChunkCache.set(chunkIndex, data);
+  return data;
+}
+
+// Rich dictionary content for one word (null if the word/chunk is unavailable).
+export async function loadWordDetail(wordId: number): Promise<WordDetail | null> {
+  const w = getWord(wordId);
+  if (!w) return null;
+  const list = await loadDetailChunk(chunkForOrder(w.order));
+  return list.find((d) => d.wordId === wordId) ?? null;
 }
 
 // Deterministic per-word direction so retests reuse the same question.

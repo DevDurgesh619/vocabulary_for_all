@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Clock, Loader2 } from "lucide-react";
 import { buildTest, getWord } from "@/lib/bank";
 import { submitTest } from "@/lib/queries";
+import { clearKnown, readKnown } from "@/lib/learn-known";
 import { useProfile, useSupabase } from "@/lib/hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import type { DailySession, LocalAnswer, Question } from "@/lib/types";
@@ -44,6 +45,10 @@ function TestRunner() {
   const [blocked, setBlocked] = useState(false);
   const startRef = useRef<number>(0);
   const lockRef = useRef(false);
+  // Words the student already proved they know via the inline Learn quick-check.
+  // They're excluded from the question list and merged back in at submit time.
+  const knownRef = useRef<LocalAnswer[]>([]);
+  const autoSubmitted = useRef(false);
 
   // Load the word list + build the test.
   useEffect(() => {
@@ -67,7 +72,11 @@ function TestRunner() {
             return;
           }
           setDailySession(ds);
-          wordIds = ds.word_ids;
+          // Pull the inline "already known" answers and drop those words from the test.
+          const knownAnswers = readKnown(sessionId);
+          knownRef.current = knownAnswers;
+          const knownIds = new Set(knownAnswers.map((a) => a.question.wordId));
+          wordIds = ds.word_ids.filter((id) => !knownIds.has(id));
         }
       }
       const test = await buildTest(wordIds, attempt);
@@ -113,12 +122,15 @@ function TestRunner() {
     if (!profile.data) return;
     setSubmitting(true);
     try {
+      // Merge the inline "already known" answers so they count in the main results.
+      const merged = [...all, ...knownRef.current];
       const { testSession } = await submitTest(sb, {
         profile: profile.data,
-        answers: all,
+        answers: merged,
         dailySessionId: dailySession?.id ?? null,
         kind,
       });
+      if (sessionId) clearKnown(sessionId);
       await qc.invalidateQueries();
       router.replace(`/test/${testSession.id}/results`);
     } catch (e) {
@@ -126,6 +138,18 @@ function TestRunner() {
       setSubmitting(false);
     }
   }
+
+  // If every word was already known, there are no questions to ask — submit the
+  // known answers straight away so the day still completes and gets scored.
+  useEffect(() => {
+    if (autoSubmitted.current || blocked || submitting) return;
+    if (!profile.data || questions === null) return;
+    if (questions.length === 0 && knownRef.current.length > 0 && dailySession) {
+      autoSubmitted.current = true;
+      finish([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [questions, profile.data, dailySession, blocked, submitting]);
 
   if (blocked)
     return (
@@ -138,7 +162,17 @@ function TestRunner() {
     );
   if (!questions || profile.isLoading) return <Center><Loader2 className="h-6 w-6 animate-spin" /></Center>;
   if (submitting) return <Center><div className="flex flex-col items-center gap-3"><Loader2 className="h-6 w-6 animate-spin" />Scoring your test…</div></Center>;
-  if (total === 0) return <Center>No questions available for this test.</Center>;
+  if (total === 0)
+    return knownRef.current.length > 0 ? (
+      <Center>
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          Scoring your test…
+        </div>
+      </Center>
+    ) : (
+      <Center>No questions available for this test.</Center>
+    );
   if (!current) return <Center><Loader2 className="h-6 w-6 animate-spin" /></Center>;
 
   const word = getWord(current.wordId);

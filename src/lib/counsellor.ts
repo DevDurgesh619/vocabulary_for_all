@@ -12,6 +12,7 @@ export interface StudentOverview {
   created_at: string;
   mastered: number;
   needs_review: number;
+  already_known: number;
   words_tested: number;
   tests_taken: number;
   avg_score: number | null;

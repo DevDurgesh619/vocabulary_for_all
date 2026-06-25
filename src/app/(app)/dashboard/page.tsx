@@ -24,6 +24,7 @@ export default function DashboardPage() {
   const prog = progress.data ?? [];
   const mastered = prog.filter((p) => p.status === "mastered").length;
   const needsReview = prog.filter((p) => p.status === "needs_review").length;
+  const alreadyKnown = prog.filter((p) => p.status === "already_known").length;
 
   // "Covered" = words actually TESTED (they have a bucket), so it always matches
   // Mastered + Needs review. Opening Learn without testing doesn't inflate it.
@@ -99,7 +100,7 @@ export default function DashboardPage() {
             <CardTitle>Bucket split</CardTitle>
           </CardHeader>
           <CardContent>
-            {mastered + needsReview === 0 ? (
+            {mastered + needsReview + alreadyKnown === 0 ? (
               <Empty>Take your first test to fill your buckets.</Empty>
             ) : (
               <div className="flex items-center gap-6">
@@ -109,6 +110,7 @@ export default function DashboardPage() {
                       <Pie
                         data={[
                           { name: "Mastered", value: mastered },
+                          { name: "Already known", value: alreadyKnown },
                           { name: "Needs review", value: needsReview },
                         ]}
                         dataKey="value"
@@ -118,6 +120,7 @@ export default function DashboardPage() {
                         stroke="none"
                       >
                         <Cell fill="var(--color-success)" />
+                        <Cell fill="var(--color-primary)" />
                         <Cell fill="var(--color-danger)" />
                       </Pie>
                     </PieChart>
@@ -125,6 +128,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="space-y-2 text-sm">
                   <Legend color="var(--color-success)" label="Mastered" value={mastered} />
+                  <Legend color="var(--color-primary)" label="Already known" value={alreadyKnown} />
                   <Legend color="var(--color-danger)" label="Needs review" value={needsReview} />
                 </div>
               </div>

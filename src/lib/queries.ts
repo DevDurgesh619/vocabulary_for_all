@@ -231,7 +231,7 @@ export async function submitTest(
     const attempts = (prior?.attempts ?? 0) + 1;
     const correctCount = (prior?.correct_count ?? 0) + (a.isCorrect ? 1 : 0);
     const accuracy = correctCount / attempts;
-    const status: WordStatus = a.isCorrect ? "mastered" : "needs_review";
+    const status: WordStatus = a.alreadyKnown ? "already_known" : a.isCorrect ? "mastered" : "needs_review";
     const tier = fluencyTier(accuracy, a.responseMs, t);
     const best = Math.min(prior?.best_response_ms ?? Number.MAX_SAFE_INTEGER, a.responseMs);
     return {

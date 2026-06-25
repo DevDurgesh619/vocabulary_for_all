@@ -11,6 +11,20 @@ export interface Word {
   definition: string;
 }
 
+// Rich "Google dictionary" content for a word, shown on the Learn card.
+// Lives in the static bank (public/word-details/chunk-XXXX.json), not the DB.
+export interface WordMeaning {
+  pos: string; // "verb", "noun", "adjective" ...
+  definition: string;
+  examples: string[]; // 1–2 sentences that actually use the word
+}
+
+export interface WordDetail {
+  wordId: number;
+  phonetic: string; // IPA, General American, wrapped in slashes e.g. "/əˈbeɪs/"
+  meanings: WordMeaning[]; // meanings[0] is the canonical sense the test uses
+}
+
 export interface Question {
   id: string;
   wordId: number;
@@ -22,7 +36,7 @@ export interface Question {
   correctIndex: number;
 }
 
-export type WordStatus = "new" | "learning" | "mastered" | "needs_review";
+export type WordStatus = "new" | "learning" | "mastered" | "needs_review" | "already_known";
 export type FluencyTier = "mastered" | "developing" | "needs_reinforcement" | "at_risk";
 
 export type Role = "student" | "counsellor";
@@ -98,4 +112,7 @@ export interface LocalAnswer {
   selectedWordId: number | null;
   isCorrect: boolean;
   responseMs: number;
+  // True when captured via the inline "I know this" quick-check on the Learn
+  // screen (instead of the end-of-day test). Routed to the "already_known" bucket.
+  alreadyKnown?: boolean;
 }
