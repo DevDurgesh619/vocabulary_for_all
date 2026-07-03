@@ -12,6 +12,7 @@ import { StudentAnalytics } from "@/components/student-analytics";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export default function StudentDetailPage({ params }: { params: Promise<{ studentId: string }> }) {
   const { studentId } = use(params);
@@ -23,6 +24,7 @@ export default function StudentDetailPage({ params }: { params: Promise<{ studen
   const [fast, setFast] = useState(4000);
   const [slow, setSlow] = useState(12000);
   const [guess, setGuess] = useState(1500);
+  const [unlimited, setUnlimited] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -34,6 +36,7 @@ export default function StudentDetailPage({ params }: { params: Promise<{ studen
       setFast(profile.fast_threshold_ms);
       setSlow(profile.slow_threshold_ms);
       setGuess(profile.guess_threshold_ms);
+      setUnlimited(profile.unlimited_daily);
     }
   }, [profile]);
 
@@ -43,6 +46,7 @@ export default function StudentDetailPage({ params }: { params: Promise<{ studen
     setErr(null);
     const res = await updateStudentSettings(sb, studentId, {
       words_per_day: wpd,
+      unlimited_daily: unlimited,
       fast_threshold_ms: fast,
       slow_threshold_ms: slow,
       guess_threshold_ms: guess,
@@ -107,6 +111,32 @@ export default function StudentDetailPage({ params }: { params: Promise<{ studen
             <Num label="Fast ≤ (ms)" value={fast} onChange={setFast} step={500} />
             <Num label="Slow ≥ (ms)" value={slow} onChange={setSlow} step={500} />
             <Num label="Guess ≤ (ms)" value={guess} onChange={setGuess} step={250} />
+          </div>
+          <div className="flex items-center justify-between gap-4 rounded-lg border border-[var(--color-border)] p-3">
+            <div className="min-w-0">
+              <p className="text-sm font-medium">Unlimited lessons per day</p>
+              <p className="text-xs text-[var(--color-muted-foreground)]">
+                Let this student start multiple lessons &amp; tests in one day (skips the once-a-day lock). Past days are unaffected.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={unlimited}
+              aria-label="Toggle unlimited lessons per day"
+              onClick={() => setUnlimited((v) => !v)}
+              className={cn(
+                "relative h-6 w-11 shrink-0 rounded-full transition-colors",
+                unlimited ? "bg-[var(--color-primary)]" : "bg-[var(--color-muted)]",
+              )}
+            >
+              <span
+                className={cn(
+                  "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
+                  unlimited ? "translate-x-5" : "translate-x-0.5",
+                )}
+              />
+            </button>
           </div>
           <div className="flex items-center gap-3">
             <Button onClick={save} disabled={saving}>

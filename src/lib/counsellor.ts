@@ -48,6 +48,7 @@ export async function getStudentDetail(sb: SupabaseClient, studentId: string): P
 
 export interface StudentSettings {
   words_per_day: number;
+  unlimited_daily: boolean;
   fast_threshold_ms: number;
   slow_threshold_ms: number;
   guess_threshold_ms: number;

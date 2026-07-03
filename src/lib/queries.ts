@@ -96,7 +96,10 @@ export type DayState =
 
 // Decide what the student is allowed to do right now. Enforces: exactly one
 // learning batch + one daily test per calendar day, in order, no jumping ahead.
-export async function getDayState(sb: SupabaseClient): Promise<DayState> {
+export async function getDayState(
+  sb: SupabaseClient,
+  opts?: { unlimitedDaily?: boolean },
+): Promise<DayState> {
   const sessions = await getDailySessions(sb);
 
   // An un-tested batch is always today's task (resume it).
@@ -107,16 +110,30 @@ export async function getDayState(sb: SupabaseClient): Promise<DayState> {
   sessions.forEach((s) => s.word_ids.forEach((id) => covered.add(id)));
   if (covered.size >= TOTAL_WORDS) return { kind: "all_done" };
 
-  // Already completed a *daily* test today? Lock until tomorrow.
-  const { data } = await sb
-    .from("test_sessions")
-    .select("*")
-    .eq("kind", "daily")
-    .order("created_at", { ascending: false })
-    .limit(5);
-  const today = new Date().toDateString();
-  const completedToday = (data ?? []).find((t) => new Date(t.created_at).toDateString() === today);
-  if (completedToday) return { kind: "locked", completedToday: completedToday as TestSession };
+  // Per-student override: fast learners can be allowed unlimited lessons/day,
+  // which skips the once-per-day lock entirely. Resolve the flag (passed in by
+  // callers that already have the profile; otherwise fetched here).
+  let unlimited = opts?.unlimitedDaily;
+  if (unlimited === undefined) {
+    const id = await uid(sb);
+    if (id) {
+      const { data: p } = await sb.from("profiles").select("unlimited_daily").eq("user_id", id).maybeSingle();
+      unlimited = !!(p as { unlimited_daily?: boolean } | null)?.unlimited_daily;
+    }
+  }
+
+  if (!unlimited) {
+    // Already completed a *daily* test today? Lock until tomorrow.
+    const { data } = await sb
+      .from("test_sessions")
+      .select("*")
+      .eq("kind", "daily")
+      .order("created_at", { ascending: false })
+      .limit(5);
+    const today = new Date().toDateString();
+    const completedToday = (data ?? []).find((t) => new Date(t.created_at).toDateString() === today);
+    if (completedToday) return { kind: "locked", completedToday: completedToday as TestSession };
+  }
 
   return { kind: "ready", dayNumber: sessions.length + 1 };
 }
@@ -152,7 +169,7 @@ export async function getTodaySession(
   sb: SupabaseClient,
   profile: Profile,
 ): Promise<{ session: DailySession | null; state: DayState }> {
-  const state = await getDayState(sb);
+  const state = await getDayState(sb, { unlimitedDaily: profile.unlimited_daily });
   if (state.kind === "learn_pending") return { session: state.session, state };
   if (state.kind === "ready") return { session: await createNextDay(sb, profile), state };
   return { session: null, state };
