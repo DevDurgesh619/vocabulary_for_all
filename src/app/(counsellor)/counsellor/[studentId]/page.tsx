@@ -9,6 +9,7 @@ import { getStudentDetail, updateStudentSettings } from "@/lib/counsellor";
 import { thresholdsFromProfile } from "@/lib/analytics";
 import { TOTAL_WORDS } from "@/lib/bank";
 import { StudentAnalytics } from "@/components/student-analytics";
+import { StudentInsights } from "@/components/student-insights";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -119,24 +120,36 @@ export default function StudentDetailPage({ params }: { params: Promise<{ studen
                 Let this student start multiple lessons &amp; tests in one day (skips the once-a-day lock). Past days are unaffected.
               </p>
             </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={unlimited}
-              aria-label="Toggle unlimited lessons per day"
-              onClick={() => setUnlimited((v) => !v)}
-              className={cn(
-                "relative h-6 w-11 shrink-0 rounded-full transition-colors",
-                unlimited ? "bg-[var(--color-primary)]" : "bg-[var(--color-muted)]",
-              )}
-            >
+            <div className="flex shrink-0 items-center gap-2">
               <span
                 className={cn(
-                  "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
-                  unlimited ? "translate-x-5" : "translate-x-0.5",
+                  "text-xs font-bold",
+                  unlimited ? "text-[var(--color-primary)]" : "text-[var(--color-muted-foreground)]",
                 )}
-              />
-            </button>
+              >
+                {unlimited ? "ON" : "OFF"}
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={unlimited}
+                aria-label="Toggle unlimited lessons per day"
+                onClick={() => setUnlimited((v) => !v)}
+                className={cn(
+                  "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors",
+                  unlimited
+                    ? "border-[var(--color-primary)] bg-[var(--color-primary)]"
+                    : "border-[var(--color-border)] bg-[var(--color-muted)]",
+                )}
+              >
+                <span
+                  className={cn(
+                    "inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform",
+                    unlimited ? "translate-x-5" : "translate-x-0.5",
+                  )}
+                />
+              </button>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <Button onClick={save} disabled={saving}>
@@ -147,6 +160,8 @@ export default function StudentDetailPage({ params }: { params: Promise<{ studen
           </div>
         </CardContent>
       </Card>
+
+      <StudentInsights profile={profile} dailySessions={detail.data!.dailySessions} tests={detail.data!.tests} />
 
       <StudentAnalytics responses={detail.data!.responses} history={detail.data!.tests} thresholds={thresholdsFromProfile(profile)} />
     </div>

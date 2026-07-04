@@ -2,7 +2,7 @@
 // RLS (migration 0002) authorizes cross-student access only for counsellors.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Profile, QuestionResponse, TestSession, WordProgress } from "./types";
+import type { DailySession, Profile, QuestionResponse, TestSession, WordProgress } from "./types";
 
 export interface StudentOverview {
   user_id: string;
@@ -29,20 +29,24 @@ export interface StudentDetail {
   responses: QuestionResponse[];
   progress: WordProgress[];
   tests: TestSession[];
+  dailySessions: DailySession[];
 }
 
 export async function getStudentDetail(sb: SupabaseClient, studentId: string): Promise<StudentDetail> {
-  const [{ data: profile }, { data: responses }, { data: progress }, { data: tests }] = await Promise.all([
-    sb.from("profiles").select("*").eq("user_id", studentId).maybeSingle(),
-    sb.from("question_responses").select("*").eq("user_id", studentId),
-    sb.from("word_progress").select("*").eq("user_id", studentId),
-    sb.from("test_sessions").select("*").eq("user_id", studentId).order("created_at", { ascending: false }),
-  ]);
+  const [{ data: profile }, { data: responses }, { data: progress }, { data: tests }, { data: daily }] =
+    await Promise.all([
+      sb.from("profiles").select("*").eq("user_id", studentId).maybeSingle(),
+      sb.from("question_responses").select("*").eq("user_id", studentId),
+      sb.from("word_progress").select("*").eq("user_id", studentId),
+      sb.from("test_sessions").select("*").eq("user_id", studentId).order("created_at", { ascending: false }),
+      sb.from("daily_sessions").select("*").eq("user_id", studentId).order("day_number", { ascending: true }),
+    ]);
   return {
     profile: (profile as Profile) ?? null,
     responses: (responses ?? []) as QuestionResponse[],
     progress: (progress ?? []) as WordProgress[],
     tests: (tests ?? []) as TestSession[],
+    dailySessions: (daily ?? []) as DailySession[],
   };
 }
 
