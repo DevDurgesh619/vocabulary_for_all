@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Check, Loader2, Lock, LogOut, ShieldCheck } from "lucide-react";
 import { useProfile, useSupabase } from "@/lib/hooks";
-import { lockAdmin, saveSettings, unlockAdmin } from "@/app/(app)/settings/actions";
+import { lockAdmin, saveSettings, saveWordsPerDay, unlockAdmin } from "@/app/(app)/settings/actions";
+import { MIN_STUDENT_PACE } from "@/lib/pace";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +30,11 @@ export function SettingsForm({ isAdmin }: { isAdmin: boolean }) {
   const [unlocking, setUnlocking] = useState(false);
   const [unlockErr, setUnlockErr] = useState<string | null>(null);
 
-  const ro = !isAdmin; // read-only for students
+  const ro = !isAdmin; // thresholds are read-only for students
+  const canSetPace = !!profile.data?.can_set_pace;
+  const paceEditable = isAdmin || canSetPace;
+  const paceMin = !isAdmin && canSetPace ? MIN_STUDENT_PACE : 5;
+  const pacePresets = !isAdmin && canSetPace ? [50, 100, 150, 200, 300] : [5, 50, 100, 150, 200];
 
   useEffect(() => {
     if (profile.data) {
@@ -50,6 +55,21 @@ export function SettingsForm({ isAdmin }: { isAdmin: boolean }) {
       slow_threshold_ms: slow,
       guess_threshold_ms: guess,
     });
+    setSaving(false);
+    if (!res.ok) {
+      setErr(res.error ?? "Could not save.");
+      return;
+    }
+    await qc.invalidateQueries();
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
+  async function savePace() {
+    setSaving(true);
+    setSaved(false);
+    setErr(null);
+    const res = await saveWordsPerDay(wpd);
     setSaving(false);
     if (!res.ok) {
       setErr(res.error ?? "Could not save.");
@@ -89,7 +109,11 @@ export function SettingsForm({ isAdmin }: { isAdmin: boolean }) {
         <div>
           <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Settings</h1>
           <p className="text-sm text-[var(--color-muted-foreground)]">
-            {isAdmin ? "Admin mode — changes affect the learner's plan." : "These are managed by your admin."}
+            {isAdmin
+              ? "Admin mode — changes affect the learner's plan."
+              : canSetPace
+                ? "You can set your daily pace below. Other settings are managed by your admin."
+                : "These are managed by your admin."}
           </p>
         </div>
         {isAdmin ? (
@@ -137,24 +161,36 @@ export function SettingsForm({ isAdmin }: { isAdmin: boolean }) {
           </div>
           <input
             type="range"
-            min={5}
+            min={paceMin}
             max={300}
             step={5}
             value={wpd}
-            disabled={ro}
+            disabled={!paceEditable}
             onChange={(e) => setWpd(Number(e.target.value))}
             className="w-full accent-[var(--color-primary)] disabled:opacity-50"
           />
           <div className="flex gap-2">
-            {[5, 50, 100, 150, 200].map((n) => (
-              <Button key={n} variant={wpd === n ? "default" : "outline"} size="sm" disabled={ro} onClick={() => setWpd(n)} className="flex-1">
+            {pacePresets.map((n) => (
+              <Button key={n} variant={wpd === n ? "default" : "outline"} size="sm" disabled={!paceEditable} onClick={() => setWpd(n)} className="flex-1">
                 {n}
               </Button>
             ))}
           </div>
           <p className="text-xs text-[var(--color-muted-foreground)]">
             At {wpd}/day, all 5,002 words are covered in about <strong>{days} days</strong>. Each daily test has {wpd} questions.
+            {!isAdmin && canSetPace && ` Minimum ${MIN_STUDENT_PACE}/day.`}
           </p>
+
+          {/* Self-serve students save their pace here (thresholds stay admin-only). */}
+          {!isAdmin && canSetPace && (
+            <div className="flex items-center gap-3 pt-1">
+              <Button onClick={savePace} disabled={saving}>
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : saved ? <Check className="h-4 w-4" /> : null}
+                {saved ? "Saved" : "Save pace"}
+              </Button>
+              {err && <p className="text-sm text-[var(--color-danger)]">{err}</p>}
+            </div>
+          )}
         </CardContent>
       </Card>
 

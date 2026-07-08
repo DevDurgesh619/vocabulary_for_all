@@ -14,7 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { getTodaySession, type DayState } from "@/lib/queries";
-import { buildTest, getWord, loadWordDetail } from "@/lib/bank";
+import { getWord, loadQuestionsForWords, loadWordDetail } from "@/lib/bank";
 import { readKnown, writeKnown } from "@/lib/learn-known";
 import { useProfile, useSupabase } from "@/lib/hooks";
 import type { DailySession, LocalAnswer, Question, Word, WordDetail } from "@/lib/types";
@@ -26,13 +26,63 @@ import { cn } from "@/lib/utils";
 
 const idxKey = (sessionId: string) => `lexica:learn:${sessionId}`;
 
-// Speak a word aloud via the browser's built-in text-to-speech.
+// Prefer a female English voice (like Google's dictionary pronunciation).
+// Voice availability varies by OS/browser, so we match known female voice names
+// and fall back gracefully. undefined = not resolved yet (voices load async).
+let cachedVoice: SpeechSynthesisVoice | null | undefined;
+
+const FEMALE_HINTS = [
+  "google us english",
+  "google uk english female",
+  "samantha",
+  "microsoft zira",
+  "microsoft aria",
+  "microsoft jenny",
+  "victoria",
+  "karen",
+  "moira",
+  "tessa",
+  "fiona",
+  "serena",
+  "allison",
+  "susan",
+  "female",
+];
+
+function pickFemaleVoice(): SpeechSynthesisVoice | null {
+  if (typeof window === "undefined" || !window.speechSynthesis) return null;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return null; // not loaded yet
+  const en = voices.filter((v) => v.lang?.toLowerCase().startsWith("en"));
+  const pool = en.length ? en : voices;
+  for (const hint of FEMALE_HINTS) {
+    const v = pool.find((x) => x.name.toLowerCase().includes(hint));
+    if (v) return v;
+  }
+  return (
+    pool.find((v) => v.lang.toLowerCase() === "en-us") ??
+    pool.find((v) => v.lang.toLowerCase() === "en-gb") ??
+    pool[0] ??
+    null
+  );
+}
+
+function resolveVoice(): SpeechSynthesisVoice | null {
+  if (cachedVoice !== undefined) return cachedVoice;
+  const v = pickFemaleVoice();
+  if (v) cachedVoice = v; // cache once voices are available
+  return v;
+}
+
+// Speak a word aloud via the browser's built-in text-to-speech (female voice).
 function speak(text: string) {
   if (typeof window === "undefined" || !window.speechSynthesis) return;
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
   u.lang = "en-US";
   u.rate = 0.9;
+  const voice = resolveVoice();
+  if (voice) u.voice = voice;
   window.speechSynthesis.speak(u);
 }
 
@@ -71,6 +121,19 @@ export default function LearnPage() {
       setLoading(false);
     })();
   }, [profile.data, sb]);
+
+  // Warm up TTS voices (Chrome populates them asynchronously) so the female
+  // voice is selected before the first speaker tap.
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    const refresh = () => {
+      cachedVoice = undefined;
+      resolveVoice();
+    };
+    refresh();
+    window.speechSynthesis.addEventListener?.("voiceschanged", refresh);
+    return () => window.speechSynthesis.removeEventListener?.("voiceschanged", refresh);
+  }, []);
 
   // Restore card position + the "already known" buffer for this session.
   useEffect(() => {
@@ -169,12 +232,16 @@ export default function LearnPage() {
     setIdx((i) => Math.max(0, i - 1));
   }
 
-  // "I know this" -> instantly quiz the student on this word.
+  // "I know this" -> instantly quiz the student on this word. Always ask
+  // word -> meaning (w2m): the word is the prompt (already on the card), and the
+  // MEANING is the answer, so the card never leaks the answer. This is only
+  // offered before the meaning is revealed, keeping it a fair blind check.
   async function startQuiz() {
     setQuiz({ question: null, loading: true, selected: null, isCorrect: null, startMs: 0 });
     try {
-      const qs = await buildTest([word.id], 0);
-      const q = qs[0] ?? null;
+      const byWord = await loadQuestionsForWords([word.id]);
+      const qs = byWord.get(word.id) ?? [];
+      const q = qs.find((x) => x.direction === "w2m") ?? qs[0] ?? null;
       if (!q) {
         // No question available — just reveal the meaning instead.
         setQuiz(null);
@@ -314,22 +381,38 @@ export default function LearnPage() {
 
       {/* Action row — hidden during the quiz */}
       {!quizzing && (
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={prev} disabled={idx === 0}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          {isKnown ? (
-            <Button variant="success" className="flex-1" disabled>
-              <Check className="h-4 w-4" /> Already known
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={prev} disabled={idx === 0}>
+              <ArrowLeft className="h-4 w-4" />
             </Button>
-          ) : (
-            <Button variant="outline" className="flex-1" onClick={startQuiz}>
-              <Check className="h-4 w-4" /> I know this
+            {isKnown ? (
+              <Button variant="success" className="flex-1" disabled>
+                <Check className="h-4 w-4" /> Already known
+              </Button>
+            ) : !expanded ? (
+              <Button variant="outline" className="flex-1" onClick={startQuiz}>
+                <Check className="h-4 w-4" /> I know this
+              </Button>
+            ) : (
+              <Button variant="outline" className="flex-1" disabled>
+                Tested in daily test
+              </Button>
+            )}
+            <Button className="flex-1" onClick={next}>
+              {isLast ? "Finish" : "Next"} <ArrowRight className="h-4 w-4" />
             </Button>
+          </div>
+          {!isKnown && !expanded && (
+            <p className="text-center text-xs text-[var(--color-muted-foreground)]">
+              Sure you know it? Tap <strong>I know this</strong> to prove it <em>before</em> revealing the meaning.
+            </p>
           )}
-          <Button className="flex-1" onClick={next}>
-            {isLast ? "Finish" : "Next"} <ArrowRight className="h-4 w-4" />
-          </Button>
+          {!isKnown && expanded && (
+            <p className="text-center text-xs text-[var(--color-muted-foreground)]">
+              You revealed the meaning — this word will be checked in your daily test.
+            </p>
+          )}
         </div>
       )}
     </div>

@@ -50,6 +50,9 @@ export interface Profile {
   // When true, this student can start unlimited lessons + tests per day
   // (the once-per-day lock is bypassed). Off by default.
   unlimited_daily: boolean;
+  // When true, this student may set their own words-per-day (min enforced in the
+  // app) without the admin passcode. Off by default.
+  can_set_pace: boolean;
   fast_threshold_ms: number;
   slow_threshold_ms: number;
   guess_threshold_ms: number;

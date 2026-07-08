@@ -26,6 +26,7 @@ export default function StudentDetailPage({ params }: { params: Promise<{ studen
   const [slow, setSlow] = useState(12000);
   const [guess, setGuess] = useState(1500);
   const [unlimited, setUnlimited] = useState(false);
+  const [canSetPace, setCanSetPace] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -38,6 +39,7 @@ export default function StudentDetailPage({ params }: { params: Promise<{ studen
       setSlow(profile.slow_threshold_ms);
       setGuess(profile.guess_threshold_ms);
       setUnlimited(profile.unlimited_daily);
+      setCanSetPace(profile.can_set_pace);
     }
   }, [profile]);
 
@@ -48,6 +50,7 @@ export default function StudentDetailPage({ params }: { params: Promise<{ studen
     const res = await updateStudentSettings(sb, studentId, {
       words_per_day: wpd,
       unlimited_daily: unlimited,
+      can_set_pace: canSetPace,
       fast_threshold_ms: fast,
       slow_threshold_ms: slow,
       guess_threshold_ms: guess,
@@ -146,6 +149,44 @@ export default function StudentDetailPage({ params }: { params: Promise<{ studen
                   className={cn(
                     "inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform",
                     unlimited ? "translate-x-5" : "translate-x-0.5",
+                  )}
+                />
+              </button>
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-4 rounded-lg border border-[var(--color-border)] p-3">
+            <div className="min-w-0">
+              <p className="text-sm font-medium">Let student set their own pace</p>
+              <p className="text-xs text-[var(--color-muted-foreground)]">
+                Student can change their own words-per-day (min 50) from Settings without the admin passcode. Response-time thresholds stay locked to you.
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <span
+                className={cn(
+                  "text-xs font-bold",
+                  canSetPace ? "text-[var(--color-primary)]" : "text-[var(--color-muted-foreground)]",
+                )}
+              >
+                {canSetPace ? "ON" : "OFF"}
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={canSetPace}
+                aria-label="Toggle student self-serve pace"
+                onClick={() => setCanSetPace((v) => !v)}
+                className={cn(
+                  "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors",
+                  canSetPace
+                    ? "border-[var(--color-primary)] bg-[var(--color-primary)]"
+                    : "border-[var(--color-border)] bg-[var(--color-muted)]",
+                )}
+              >
+                <span
+                  className={cn(
+                    "inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform",
+                    canSetPace ? "translate-x-5" : "translate-x-0.5",
                   )}
                 />
               </button>

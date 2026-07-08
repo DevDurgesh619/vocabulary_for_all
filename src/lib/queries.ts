@@ -56,18 +56,37 @@ export async function getTestHistory(sb: SupabaseClient): Promise<TestSession[]>
   return (data ?? []) as TestSession[];
 }
 
+// Supabase caps each request at the project "Max rows" limit (default 1000).
+// Page through with .range() so large result sets come back complete instead of
+// silently truncating (e.g. a student who has covered > 1000 words freezing at 1000).
+export async function fetchAllPaged<T>(
+  makeQuery: (from: number, to: number) => PromiseLike<{ data: T[] | null }>,
+): Promise<T[]> {
+  const PAGE = 1000;
+  const out: T[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data } = await makeQuery(from, from + PAGE - 1);
+    const rows = data ?? [];
+    out.push(...rows);
+    if (rows.length < PAGE) break;
+  }
+  return out;
+}
+
 export async function getAllProgress(sb: SupabaseClient): Promise<WordProgress[]> {
   const id = await uid(sb);
   if (!id) return [];
-  const { data } = await sb.from("word_progress").select("*").eq("user_id", id);
-  return (data ?? []) as WordProgress[];
+  return fetchAllPaged<WordProgress>((from, to) =>
+    sb.from("word_progress").select("*").eq("user_id", id).range(from, to),
+  );
 }
 
 export async function getAllResponses(sb: SupabaseClient): Promise<QuestionResponse[]> {
   const id = await uid(sb);
   if (!id) return [];
-  const { data } = await sb.from("question_responses").select("*").eq("user_id", id);
-  return (data ?? []) as QuestionResponse[];
+  return fetchAllPaged<QuestionResponse>((from, to) =>
+    sb.from("question_responses").select("*").eq("user_id", id).range(from, to),
+  );
 }
 
 // The set of word ids already covered (have a daily session). Used to pick the next batch.

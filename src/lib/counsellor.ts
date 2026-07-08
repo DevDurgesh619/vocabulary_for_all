@@ -3,6 +3,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DailySession, Profile, QuestionResponse, TestSession, WordProgress } from "./types";
+import { fetchAllPaged } from "./queries";
 
 export interface StudentOverview {
   user_id: string;
@@ -33,26 +34,30 @@ export interface StudentDetail {
 }
 
 export async function getStudentDetail(sb: SupabaseClient, studentId: string): Promise<StudentDetail> {
-  const [{ data: profile }, { data: responses }, { data: progress }, { data: tests }, { data: daily }] =
-    await Promise.all([
-      sb.from("profiles").select("*").eq("user_id", studentId).maybeSingle(),
-      sb.from("question_responses").select("*").eq("user_id", studentId),
-      sb.from("word_progress").select("*").eq("user_id", studentId),
-      sb.from("test_sessions").select("*").eq("user_id", studentId).order("created_at", { ascending: false }),
-      sb.from("daily_sessions").select("*").eq("user_id", studentId).order("day_number", { ascending: true }),
-    ]);
+  const [profileRes, responses, progress, testsRes, dailyRes] = await Promise.all([
+    sb.from("profiles").select("*").eq("user_id", studentId).maybeSingle(),
+    fetchAllPaged<QuestionResponse>((from, to) =>
+      sb.from("question_responses").select("*").eq("user_id", studentId).range(from, to),
+    ),
+    fetchAllPaged<WordProgress>((from, to) =>
+      sb.from("word_progress").select("*").eq("user_id", studentId).range(from, to),
+    ),
+    sb.from("test_sessions").select("*").eq("user_id", studentId).order("created_at", { ascending: false }),
+    sb.from("daily_sessions").select("*").eq("user_id", studentId).order("day_number", { ascending: true }),
+  ]);
   return {
-    profile: (profile as Profile) ?? null,
-    responses: (responses ?? []) as QuestionResponse[],
-    progress: (progress ?? []) as WordProgress[],
-    tests: (tests ?? []) as TestSession[],
-    dailySessions: (daily ?? []) as DailySession[],
+    profile: (profileRes.data as Profile) ?? null,
+    responses,
+    progress,
+    tests: (testsRes.data ?? []) as TestSession[],
+    dailySessions: (dailyRes.data ?? []) as DailySession[],
   };
 }
 
 export interface StudentSettings {
   words_per_day: number;
   unlimited_daily: boolean;
+  can_set_pace: boolean;
   fast_threshold_ms: number;
   slow_threshold_ms: number;
   guess_threshold_ms: number;
